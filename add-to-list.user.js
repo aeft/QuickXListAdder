@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         X (Twitter) List Import
 // @namespace    https://github.com/aeft/QuickXListAdder
-// @version      1.0.2
+// @version      1.0.3
 // @description  Automatically add multiple users to X (Twitter) lists
 // @author       Alex Wang
 // @match        https://x.com/i/lists/*
@@ -29,7 +29,10 @@
         navigationDelay: 1000, // Delay after navigation actions
         pivotDelay: 1000, // Delay after clicking pivot element
         suggestedTabDelay: 2000, // Delay after clicking suggested tab
-        inputClearDelay: 100 // Delay after clearing input field
+        inputClearDelay: 100, // Delay after clearing input field
+        // Button verification
+        buttonVerificationTimeout: 3000, // Timeout for verifying button status change
+        buttonVerificationInterval: 200 // Interval for checking button status change
     };
 
     const SELECTORS = {
@@ -166,6 +169,48 @@
         });
     }
 
+    // Verify that button status changed after clicking
+    async function verifyButtonStatusChange(targetUsername, timeout = CONFIG.buttonVerificationTimeout) {
+        return new Promise((resolve, reject) => {
+            const startTime = Date.now();
+
+            function check() {
+                // Look for user cards in the search results
+                const userCards = document.querySelectorAll('[data-testid="TypeaheadUser"]');
+
+                if (userCards.length > 0) {
+                    const firstCard = userCards[0];
+
+                    // Find username in the card
+                    const usernameElement = firstCard.querySelector('[data-testid="User-Name"] a, [data-testid="User-Names"] a, a[href*="/"]');
+                    if (usernameElement) {
+                        const href = usernameElement.getAttribute('href');
+                        const cardUsername = href ? href.replace('/', '').toLowerCase() : '';
+
+                        // Check if this matches our target user
+                        if (cardUsername === targetUsername.toLowerCase()) {
+                            // Check for Remove button (indicates successful addition)
+                            const removeButton = firstCard.querySelector('button[aria-label="Remove"]');
+                            if (removeButton) {
+                                resolve(true);
+                                return;
+                            }
+                        }
+                    }
+                }
+
+                if (Date.now() - startTime > timeout) {
+                    resolve(false);
+                    return;
+                }
+
+                setTimeout(check, CONFIG.buttonVerificationInterval);
+            }
+
+            check();
+        });
+    }
+
     // Main automation class
     class ListUserAdder {
         constructor() {
@@ -243,7 +288,16 @@
                 } else if (userCard.status === 'can_add') {
                     clickElement(userCard.button);
                     await sleep(CONFIG.actionDelay);
-                    return 'added';
+
+                    // Verify that the button actually changed to "Remove"
+                    const verificationSuccess = await verifyButtonStatusChange(cleanUsername);
+                    if (verificationSuccess) {
+                        console.log(`Successfully added user ${username} to the list`);
+                        return 'added';
+                    } else {
+                        console.error(`Failed to verify addition of user ${username} - button did not change to Remove`);
+                        return 'failed';
+                    }
                 } else {
                     console.error(`No valid button found for user ${username}`);
                     return 'failed';
