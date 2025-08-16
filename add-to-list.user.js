@@ -441,6 +441,18 @@
                 transform: translateY(-1px);
             }
             
+            #x-list-adder-panel button.stop {
+                background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+                color: white;
+                box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+            }
+            
+            #x-list-adder-panel button.stop:hover {
+                background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+            }
+            
             #x-list-adder-status {
                 margin-top: 12px;
                 font-size: 13px;
@@ -527,7 +539,7 @@
             <h3>Add Users to List</h3>
             <textarea id="x-list-adder-input" placeholder="Enter usernames separated by commas&#10;Example: user1, user2, user3"></textarea>
             <button id="x-list-adder-start">Add Users</button>
-            <button id="x-list-adder-stop" class="secondary" style="display: none;">Stop</button>
+            <button id="x-list-adder-stop" class="stop" style="display: none;">Stop</button>
             <button id="x-list-adder-close" class="secondary">Close</button>
             <div id="x-list-adder-status">Ready to add users</div>
         `;
