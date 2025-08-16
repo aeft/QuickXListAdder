@@ -2,7 +2,7 @@
 
 A simple Tampermonkey script that lets you quickly add multiple X (Twitter) accounts into one of your Lists. It removes the need to manually add each account one by one.
 
-The motivation for this is simple: to learn from experts in your own X (Twitter) lists without being distracted by the platform’s recommendation algorithm.
+The motivation for this is simple: to learn from experts in your own X (Twitter) lists without being distracted by the platform's recommendation algorithm.
 
 ## Installation
 
@@ -25,6 +25,12 @@ rustlang,gvanrossum,JeffDean,golang,clattner_llvm,ThePSF,simonw,karpathy
 3. The script will automatically add these accounts to the current List.
 
 ![](./assets/20250816_003418.gif)
+
+## Note
+You may encounter the error "You aren't allowed to add this member to this List.
+" if add 50 or more (I am not sure the exact number), more details:
+- https://www.reddit.com/r/Twitter/comments/17ucr7q/cant_add_more_accounts_to_twitter_lists/
+- https://www.reddit.com/r/Twitter/comments/txfaw5/cant_add_people_to_my_list/
 
 ## Disclaimer
 
