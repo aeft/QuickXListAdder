@@ -22,6 +22,8 @@ The motivation for this is simple: to learn from experts in your own X (Twitter)
 rustlang,gvanrossum,JeffDean,golang,clattner_llvm,ThePSF,simonw,karpathy
 ```
 
+![1755370558934](./assets/1755370558934.png)
+
 3. The script will automatically add these accounts to the current List.
 
 ![](./assets/20250816_003418.gif)
