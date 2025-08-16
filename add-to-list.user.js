@@ -15,7 +15,7 @@
     // Configuration
     const CONFIG = {
         addOffset: { x: 8, y: 6 },
-        waitTimeout: 8000,
+        waitTimeout: 6000,
         actionDelay: 2000, // Delay between actions to avoid rate limiting
         searchDelay: 1500   // Delay after typing before searching
     };

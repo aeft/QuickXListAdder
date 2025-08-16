@@ -26,9 +26,22 @@ rustlang,gvanrossum,JeffDean,golang,clattner_llvm,ThePSF,simonw,karpathy
 
 ![](./assets/20250816_003418.gif)
 
+## How do you start a list when entering a new field?
+
+Use ChatGPT to search and tell you some usernames.
+Prompt:
+
+```text
+Search and tell me about some famous open-source developers I should follow on X. The last line of your response should include the concise result with X usernames (no @ prefix) separated by commas.
+```
+
+Result: https://chatgpt.com/share/68a0d0eb-5ea0-800a-be78-0246a46999ad
+
 ## Note
+
 You may encounter the error "You aren't allowed to add this member to this List.
-" if add 50 or more (I am not sure the exact number), more details:
+" if add 50 or more (I am not sure the exact number. I tried 24, and it works fine), more details:
+
 - https://www.reddit.com/r/Twitter/comments/17ucr7q/cant_add_more_accounts_to_twitter_lists/
 - https://www.reddit.com/r/Twitter/comments/txfaw5/cant_add_people_to_my_list/
 
