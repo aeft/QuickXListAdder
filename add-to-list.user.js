@@ -17,7 +17,19 @@
         addOffset: { x: 8, y: 6 },
         waitTimeout: 6000,
         actionDelay: 2000, // Delay between actions to avoid rate limiting
-        searchDelay: 1500   // Delay after typing before searching
+        searchDelay: 1500,   // Delay after typing before searching
+        // Element checking and polling intervals
+        elementCheckInterval: 100, // Interval for checking if elements exist
+        // Navigation timeouts
+        editButtonTimeout: 5000, // Timeout for finding edit list button
+        suggestedTabTimeout: 5000, // Timeout for finding suggested tab
+        searchInputTimeout: 5000, // Timeout for finding search input in navigation
+        addUserSearchTimeout: 3000, // Timeout for finding search input when adding user
+        // Navigation delays
+        navigationDelay: 1000, // Delay after navigation actions
+        pivotDelay: 1000, // Delay after clicking pivot element
+        suggestedTabDelay: 2000, // Delay after clicking suggested tab
+        inputClearDelay: 100 // Delay after clearing input field
     };
 
     const SELECTORS = {
@@ -88,7 +100,7 @@
                     return;
                 }
 
-                setTimeout(check, 100);
+                setTimeout(check, CONFIG.elementCheckInterval);
             }
 
             check();
@@ -147,7 +159,7 @@
                     return;
                 }
 
-                setTimeout(check, 100);
+                setTimeout(check, CONFIG.elementCheckInterval);
             }
 
             check();
@@ -166,24 +178,24 @@
         async navigateToSuggestedPage() {
             try {
                 // Click Edit List button
-                const editButton = await waitForElement(SELECTORS.editListButton, 5000);
+                const editButton = await waitForElement(SELECTORS.editListButton, CONFIG.editButtonTimeout);
                 clickElement(editButton);
-                await sleep(1000);
+                await sleep(CONFIG.navigationDelay);
 
                 // Click on the pivot/tab area
                 const pivotElement = document.querySelector('[data-testid="pivot"] > div');
                 if (pivotElement) {
                     clickElement(pivotElement);
-                    await sleep(1000);
+                    await sleep(CONFIG.pivotDelay);
                 }
 
                 // Click Suggested tab
-                const suggestedTab = await waitForElement(SELECTORS.suggestedTab, 5000);
+                const suggestedTab = await waitForElement(SELECTORS.suggestedTab, CONFIG.suggestedTabTimeout);
                 clickElement(suggestedTab);
-                await sleep(2000);
+                await sleep(CONFIG.suggestedTabDelay);
 
                 // Focus search input
-                const searchInput = await waitForElement(SELECTORS.searchInputs, 5000);
+                const searchInput = await waitForElement(SELECTORS.searchInputs, CONFIG.searchInputTimeout);
                 searchInput.focus();
 
                 return true;
@@ -199,7 +211,7 @@
                 const cleanUsername = username.startsWith('@') ? username.slice(1) : username;
 
                 // Clear and set username using React-compatible method
-                const searchInput = await waitForElement(SELECTORS.searchInputs, 3000);
+                const searchInput = await waitForElement(SELECTORS.searchInputs, CONFIG.addUserSearchTimeout);
                 searchInput.focus();
 
                 // Get React's native input value setter
@@ -213,7 +225,7 @@
                 searchInput.dispatchEvent(new Event('input', { bubbles: true }));
                 searchInput.dispatchEvent(new Event('change', { bubbles: true }));
 
-                await sleep(100);
+                await sleep(CONFIG.inputClearDelay);
 
                 // Set the username 
                 nativeInputValueSetter.call(searchInput, cleanUsername);
