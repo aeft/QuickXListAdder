@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         X (Twitter) List Import
 // @namespace    https://github.com/aeft/QuickXListAdder
-// @version      1.0.1
+// @version      1.0.2
 // @description  Automatically add multiple users to X (Twitter) lists
 // @author       Alex Wang
 // @match        https://x.com/i/lists/*
@@ -106,12 +106,61 @@
         element.dispatchEvent(event);
     }
 
+    // Find user card and check if user already exists in list
+    async function findUserCard(targetUsername, timeout = CONFIG.waitTimeout) {
+        return new Promise((resolve, reject) => {
+            const startTime = Date.now();
+
+            function check() {
+                // Look for user cards in the search results
+                const userCards = document.querySelectorAll('[data-testid="TypeaheadUser"]');
+
+                if (userCards.length > 0) {
+                    const firstCard = userCards[0];
+
+                    // Find username in the card
+                    const usernameElement = firstCard.querySelector('[data-testid="User-Name"] a, [data-testid="User-Names"] a, a[href*="/"]');
+                    if (usernameElement) {
+                        const href = usernameElement.getAttribute('href');
+                        const cardUsername = href ? href.replace('/', '').toLowerCase() : '';
+
+                        // Check if this matches our target user
+                        if (cardUsername === targetUsername.toLowerCase()) {
+                            // Find the button in this card
+                            const addButton = firstCard.querySelector('button[aria-label="Add"]');
+                            const removeButton = firstCard.querySelector('button[aria-label="Remove"]');
+
+                            if (removeButton) {
+                                resolve({ status: 'already_exists', button: removeButton });
+                            } else if (addButton) {
+                                resolve({ status: 'can_add', button: addButton });
+                            } else {
+                                resolve({ status: 'no_button', button: null });
+                            }
+                            return;
+                        }
+                    }
+                }
+
+                if (Date.now() - startTime > timeout) {
+                    reject(new Error('User card not found within timeout'));
+                    return;
+                }
+
+                setTimeout(check, 100);
+            }
+
+            check();
+        });
+    }
+
     // Main automation class
     class ListUserAdder {
         constructor() {
             this.isRunning = false;
+            this.shouldStop = false;
             this.currentUsers = [];
-            this.progress = { added: 0, failed: 0, total: 0, failedUsers: [] };
+            this.progress = { added: 0, failed: 0, skipped: 0, total: 0, failedUsers: [], skippedUsers: [] };
         }
 
         async navigateToSuggestedPage() {
@@ -173,15 +222,24 @@
 
                 await sleep(CONFIG.searchDelay);
 
-                // Wait for and click Add button
-                const addButton = await waitForElement(SELECTORS.addButtons, CONFIG.waitTimeout);
-                clickElement(addButton);
+                // Check user card and button status
+                const userCard = await findUserCard(cleanUsername, CONFIG.waitTimeout);
 
-                await sleep(CONFIG.actionDelay);
-                return true;
+                if (userCard.status === 'already_exists') {
+                    console.log(`User ${username} already exists in the list, skipping`);
+                    return 'skipped';
+                } else if (userCard.status === 'can_add') {
+                    clickElement(userCard.button);
+                    await sleep(CONFIG.actionDelay);
+                    return 'added';
+                } else {
+                    console.error(`No valid button found for user ${username}`);
+                    return 'failed';
+                }
+
             } catch (error) {
                 console.error(`Failed to add user ${username}:`, error);
-                return false;
+                return 'failed';
             }
         }
 
@@ -190,7 +248,7 @@
 
             this.isRunning = true;
             this.currentUsers = users;
-            this.progress = { added: 0, failed: 0, total: users.length, failedUsers: [] };
+            this.progress = { added: 0, failed: 0, skipped: 0, total: users.length, failedUsers: [], skippedUsers: [] };
 
             this.updateUI();
 
@@ -203,10 +261,19 @@
 
                 // Add each user
                 for (const user of users) {
+                    // Check if user requested to stop
+                    if (this.shouldStop) {
+                        console.log('User requested to stop the process');
+                        break;
+                    }
+
                     const cleanUser = user.trim();
-                    const success = await this.addUser(cleanUser);
-                    if (success) {
+                    const result = await this.addUser(cleanUser);
+                    if (result === 'added') {
                         this.progress.added++;
+                    } else if (result === 'skipped') {
+                        this.progress.skipped++;
+                        this.progress.skippedUsers.push(cleanUser);
                     } else {
                         this.progress.failed++;
                         this.progress.failedUsers.push(cleanUser);
@@ -219,24 +286,52 @@
                 alert(`Error: ${error.message}`);
             } finally {
                 this.isRunning = false;
+                this.shouldStop = false;
                 this.updateUI();
             }
         }
 
+        stop() {
+            this.shouldStop = true;
+        }
+
         updateUI() {
             const statusDiv = document.getElementById('x-list-adder-status');
+            const startButton = document.getElementById('x-list-adder-start');
+            const stopButton = document.getElementById('x-list-adder-stop');
+
             if (!statusDiv) return;
 
             if (this.isRunning) {
-                statusDiv.textContent = `Adding users... ${this.progress.added}/${this.progress.total} added, ${this.progress.failed} failed`;
-            } else if (this.progress.total > 0) {
-                let statusText = `Completed: ${this.progress.added} added, ${this.progress.failed} failed`;
-                if (this.progress.failed > 0 && this.progress.failedUsers.length > 0) {
-                    statusText += `\nFailed users: ${this.progress.failedUsers.join(', ')}`;
+                statusDiv.textContent = `Adding users... ${this.progress.added}/${this.progress.total} added, ${this.progress.skipped} skipped, ${this.progress.failed} failed`;
+                if (startButton) {
+                    startButton.style.display = 'none';
                 }
-                statusDiv.textContent = statusText;
+                if (stopButton) {
+                    stopButton.style.display = 'inline-block';
+                }
             } else {
-                statusDiv.textContent = 'Ready to add users';
+                if (startButton) {
+                    startButton.style.display = 'inline-block';
+                }
+                if (stopButton) {
+                    stopButton.style.display = 'none';
+                }
+
+                if (this.progress.total > 0) {
+                    let statusText = this.shouldStop ?
+                        `Stopped: ${this.progress.added} added, ${this.progress.skipped} skipped (already in list), ${this.progress.failed} failed` :
+                        `Completed: ${this.progress.added} added, ${this.progress.skipped} skipped (already in list), ${this.progress.failed} failed`;
+                    if (this.progress.skipped > 0 && this.progress.skippedUsers.length > 0) {
+                        statusText += `\nSkipped users: ${this.progress.skippedUsers.join(', ')}`;
+                    }
+                    if (this.progress.failed > 0 && this.progress.failedUsers.length > 0) {
+                        statusText += `\nFailed users: ${this.progress.failedUsers.join(', ')}`;
+                    }
+                    statusDiv.textContent = statusText;
+                } else {
+                    statusDiv.textContent = 'Ready to add users';
+                }
             }
         }
     }
@@ -432,6 +527,7 @@
             <h3>Add Users to List</h3>
             <textarea id="x-list-adder-input" placeholder="Enter usernames separated by commas&#10;Example: user1, user2, user3"></textarea>
             <button id="x-list-adder-start">Add Users</button>
+            <button id="x-list-adder-stop" class="secondary" style="display: none;">Stop</button>
             <button id="x-list-adder-close" class="secondary">Close</button>
             <div id="x-list-adder-status">Ready to add users</div>
         `;
@@ -475,14 +571,11 @@
                 return;
             }
 
-            const startButton = document.getElementById('x-list-adder-start');
-            startButton.disabled = true;
-            startButton.textContent = 'Adding...';
-
             await adder.addUsers(users);
+        });
 
-            startButton.disabled = false;
-            startButton.textContent = 'Add Users';
+        document.getElementById('x-list-adder-stop').addEventListener('click', () => {
+            adder.stop();
         });
     }
 

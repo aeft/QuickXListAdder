@@ -12,14 +12,14 @@ The motivation for this is simple: to learn from experts in your own X (Twitter)
 
 ## Usage
 
-1. Open the target X (Twitter) List page in your browser.
+1. Open the target X (Twitter) List page in your browser. Refresh the page if it doesn't appear.
 
 ![1755328860623](./assets/1755328860623.png)
 
 2. Run the script by entering a comma-separated list of usernames, for example:
 
 ```text
-rustlang,guido_van_rossum,JeffDean,golang
+rustlang,gvanrossum,JeffDean,golang,clattner_llvm,ThePSF,simonw,karpathy
 ```
 
 3. The script will automatically add these accounts to the current List.
