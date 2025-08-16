@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         X (Twitter) List Import
-// @namespace    http://tampermonkey.net/
-// @version      1.1
+// @namespace    https://github.com/aeft/QuickXListAdder
+// @version      1.0.1
 // @description  Automatically add multiple users to X (Twitter) lists
 // @author       Alex Wang
 // @match        https://x.com/i/lists/*
